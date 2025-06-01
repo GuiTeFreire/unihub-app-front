@@ -3,22 +3,38 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import ThemeToggle from "../components/ThemeToggle";
 import Toast from "react-native-toast-message";
+import axios from "axios";
+import { useState } from "react";
+import { API_URL } from "../services/api";
 
 export default function SignupScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const [nome, setNome] = useState("");
+  const [matricula, setMatricula] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
 
-  const handleSignup = () => {
-    // ... lógica de cadastro
-  
-    // Se sucesso:
-    Toast.show({
-      type: "success",
-      text1: "Cadastro realizado!"
-    });
-  
-    // Redirecionar para a tela de login
-    router.replace("/");
+  const handleSignup = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/usuarios`, {
+        nome, email, senha, matricula
+      });
+
+      Toast.show({
+        type: "success",
+        text1: "Cadastro realizado com sucesso!",
+      });
+
+      router.replace("/");
+    } catch (error: any) {
+      console.error(error);
+      Toast.show({
+        type: "error",
+        text1: "Erro ao cadastrar",
+        text2: error?.response?.data?.detail || "Tente novamente",
+      });
+    };
   };
 
   return (
@@ -33,6 +49,7 @@ export default function SignupScreen() {
         placeholder="Nome completo"
         placeholderTextColor={colors.placeholder}
         style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+        value={nome} onChangeText={setNome}
       />
 
       <TextInput
@@ -40,6 +57,7 @@ export default function SignupScreen() {
         placeholderTextColor={colors.placeholder}
         keyboardType="numeric"
         style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+        value={matricula} onChangeText={setMatricula}
       />
 
       <TextInput
@@ -48,6 +66,7 @@ export default function SignupScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+        value={email} onChangeText={setEmail}
       />
 
       <TextInput
@@ -55,6 +74,7 @@ export default function SignupScreen() {
         secureTextEntry
         placeholderTextColor={colors.placeholder}
         style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+        value={senha} onChangeText={setSenha}
       />
 
       <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]}  onPress={handleSignup}>

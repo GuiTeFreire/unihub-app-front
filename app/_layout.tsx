@@ -4,6 +4,10 @@ import Toast from "react-native-toast-message";
 import { LocaleConfig } from "react-native-calendars";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+declare global {
+  var __DRAGGING_ITEM__: any;
+}
+
 export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

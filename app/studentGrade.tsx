@@ -5,6 +5,7 @@ import {
   Dimensions,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -128,6 +129,28 @@ export default function StudentGrade() {
     }
   };
 
+  const handleShare = async () => {
+    const message = grade.map(item => {
+      const faltas = item.faltas || 0;
+      const percentual = ((faltas / TOTAL_HORAS) * 100).toFixed(0);
+      return (
+        `• ${item.name} (${item.code})\n` +
+        `  Professor: ${item.professor || "N/A"}\n` +
+        `  Sala: ${item.sala || "N/A"}\n` +
+        `  Faltas: ${faltas}h (${percentual}%)\n`
+      );
+    }).join("\n");
+  
+    try {
+      await Share.share({
+        message: `Minha Grade de Disciplinas:\n\n${message}`,
+      });
+    } catch (error) {
+      console.error("Erro ao compartilhar:", error);
+    }
+  };
+  
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
@@ -166,7 +189,18 @@ export default function StudentGrade() {
         style={[styles.saveButton, { backgroundColor: colors.primary }]}
       >
         <Text style={[styles.saveButtonText, { color: colors.buttonText }]}>
+          <Ionicons name="save" size={16} color={colors.buttonText} />{" "}
           Salvar alterações
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={handleShare}
+        style={[styles.shareButton, { backgroundColor: colors.secondary }]}
+      >
+        <Text style={[styles.saveButtonText, { color: colors.buttonText }]}>
+          <Ionicons name="share" size={16} color={colors.buttonText} />{" "}
+          Compartilhar Grade
         </Text>
       </TouchableOpacity>
 
@@ -259,5 +293,11 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontWeight: "bold",
     fontSize: 16,
+  },
+  shareButton: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
   },
 });

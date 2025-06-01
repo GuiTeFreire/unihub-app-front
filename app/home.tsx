@@ -28,7 +28,7 @@ export default function HomeScreen() {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [tasks, setTasks] = useState<TaskMap>({
-    "2025-05-10": [{ title: "Entregar trabalho de História" }],
+    "2025-05-10": [{ title: "Entregar trabalho de FSI" }],
     "2025-05-15": [{ title: "Prova de Cálculo" }, { title: "Reunião de grupo" }],
   });  
 
@@ -88,7 +88,7 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
-          onPress={() => router.push("/atividades")}
+          onPress={() => router.push("/board")}
         >
           <Text style={[styles.buttonText, { color: colors.buttonText }]}>
             <Ionicons name="checkmark-circle" size={16} color={colors.buttonText} />{" "}

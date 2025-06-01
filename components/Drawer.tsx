@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../contexts/ThemeContext';
+import { Ionicons } from "@expo/vector-icons";
 
 export default function CustomDrawer() {
   const { colors } = useTheme();
@@ -20,13 +21,16 @@ export default function CustomDrawer() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background, flex: 1 }]}>
       <View style={styles.header}>
-        <Text style={[styles.name, { color: colors.mutedForeground }]}>{nome}</Text>
-        <Text style={[styles.subtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.name, { color: colors.primary }]}>{nome}</Text>
+        <Text style={[styles.subtext, { color: colors.primary }]}>
           {email}
         </Text>
-        <Text style={[styles.subtext, { color: colors.mutedForeground }]}>
+        <Text style={[styles.subtext, { color: colors.primary }]}>
           Matrícula: {matricula}
         </Text>
+        <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={() => router.push("/home")}>
+          <Text style={[styles.buttonText]}>Início</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
@@ -57,6 +61,17 @@ const styles = StyleSheet.create({
   subtext: {
     marginTop: 8,
     fontSize: 16,
+  },
+  button: {
+    padding: 6,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   logoutButton: {
     padding: 12,

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,22 +11,68 @@ import {
   Dimensions,
   ScrollView,
 } from "react-native";
-import { ClassData, classList } from "../data/classList";
 import ThemeToggle from "../components/ThemeToggle";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import CustomDrawer from "../components/Drawer";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import axios from "axios";
+import { API_URL } from "../services/api";
+import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+
+type ClassData = {
+  id: number;
+  nome: string;
+  codigo: string;
+  obrigatoria: string;
+  periodo: string;
+};
 
 export default function GradeBuilder() {
   const { colors } = useTheme();
   const drawerAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [filter, setFilter] = useState("");
+  const [classList, setClassList] = useState<ClassData[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<ClassData[]>([]);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const fetchDisciplinas = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/disciplinas`);
+        setClassList(response.data); // Supondo retorno em array
+      } catch (error) {
+        console.error("Erro ao buscar disciplinas:", error);
+      }
+    };
+    fetchDisciplinas();
+  }, []);
+
+  useEffect(() => {
+    const fetchMinhaGrade = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const userId = await AsyncStorage.getItem("usuario_id");
+
+        if (!token || !userId) return;
+
+        const res = await axios.get(`${API_URL}/grades/usuario/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const disciplinasSalvas = res.data.map((item: any) => item.disciplina);
+        setSelectedClasses(disciplinasSalvas);
+      } catch (error) {
+        console.error("Erro ao buscar grade salva:", error);
+      }
+    };
+
+    fetchMinhaGrade();
+  }, []);
 
   const openDrawer = () => {
     setDrawerVisible(true);
@@ -44,37 +90,68 @@ export default function GradeBuilder() {
       useNativeDriver: true,
     }).start(() => setDrawerVisible(false));
   };
-
-  const filteredClasses = classList.filter((c) =>
-    [c.code, c.name, c.period, c.mandatory].some((field) =>
+const filteredClasses = classList.filter((c) =>
+    [c.codigo, c.nome, c.periodo, c.obrigatoria].some((field) =>
       field.toLowerCase().includes(filter.toLowerCase())
     )
   );
 
   const handleAdd = (item: ClassData) => {
-    if (!selectedClasses.some((c) => c.code === item.code)) {
+    if (!selectedClasses.some((c) => c.codigo === item.codigo)) {
       setSelectedClasses((prev) => [...prev, item]);
     }
   };
 
-  const renderClassItem = ({ item }: { item: ClassData }) => (
-    <TouchableOpacity style={[styles.row, { borderBottomColor: colors.border }]} onPress={() => handleAdd(item)}>
-      <Text style={[styles.cell, { color: colors.text }]}>{item.code}</Text>
-      <Text style={[styles.cell, { color: colors.text }]}>{item.name}</Text>
-      <Text style={[styles.cell, { color: colors.text }]}>{item.period}</Text>
-      <Text style={[styles.cell, { color: colors.text }]}>{item.mandatory}</Text>
-    </TouchableOpacity>
-  );
-
-  const handleRemove = (code: string) => {
-    setSelectedClasses((prev) => prev.filter((c) => c.code !== code));
+  const handleRemove = (codigo: string) => {
+    setSelectedClasses((prev) => prev.filter((c) => c.codigo !== codigo));
   };
 
-  const handleSave = () => {
-    // Exemplo: salvar em AsyncStorage, enviar para backend, etc.
-    console.log("Grade salva:", selectedClasses);
-    alert("Grade salva com sucesso!");
-  };  
+  const handleSave = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("usuario_id");
+
+      if (!token || !userId) throw new Error("Usuário não autenticado");
+
+      for (const disciplina of selectedClasses) {
+        await axios.post(
+          `${API_URL}/grades/usuario/${userId}`,
+          {
+            disciplina_id: disciplina.id,
+            professor: "",
+            sala: "",
+            faltas: 0,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
+      Toast.show({
+        type: "success",
+        text1: "Grade salva com sucesso!",
+      });
+    } catch (error: any) {
+      console.error("Erro ao salvar grade:", error);
+      Toast.show({
+        type: "error",
+        text1: "Erro ao salvar grade",
+        text2: error.message,
+      });
+    }
+  };
+
+  const renderClassItem = ({ item }: { item: ClassData }) => (
+    <TouchableOpacity onPress={() => handleAdd(item)} style={[styles.row, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.cell, { color: colors.text }]}>{item.codigo}</Text>
+      <Text style={[styles.cell, { color: colors.text }]}>{item.nome}</Text>
+      <Text style={[styles.cell, { color: colors.text }]}>{item.periodo}</Text>
+      <Text style={[styles.cell, { color: colors.text }]}>{item.obrigatoria}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -84,76 +161,60 @@ export default function GradeBuilder() {
         </TouchableOpacity>
         <ThemeToggle />
       </View>
-  
-      <Text style={[styles.title, { color: colors.text }]}>
-        Montar Grade de Disciplinas
-      </Text>
-  
+
+      <Text style={[styles.title, { color: colors.text }]}>Montar Grade de Disciplinas</Text>
+
       <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.card,
-            color: colors.text,
-            borderColor: colors.border,
-          },
-        ]}
         placeholder="Filtrar por código, nome, período ou obrigatoriedade"
         placeholderTextColor={colors.placeholder}
         value={filter}
         onChangeText={setFilter}
+        style={[styles.input, {
+          backgroundColor: colors.card,
+          color: colors.text,
+          borderColor: colors.border,
+        }]}
       />
-  
+
       <Text style={[styles.subtitle, { color: colors.text }]}>Disciplinas Ofertadas</Text>
       <FlatList
         data={filteredClasses}
-        keyExtractor={(item) => item.code}
+        keyExtractor={(item) => item.codigo}
         renderItem={renderClassItem}
-        ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.text }]}>
-            Nenhuma disciplina encontrada.
-          </Text>
-        }
+        ListEmptyComponent={<Text style={[styles.empty, { color: colors.text }]}>Nenhuma disciplina encontrada.</Text>}
         scrollEnabled={false}
       />
-  
+
       <Text style={[styles.subtitle, { color: colors.text }]}>Minha Grade</Text>
       {selectedClasses.map((item) => (
-        <View key={item.code} style={[styles.row, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.code}</Text>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.name}</Text>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.period}</Text>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.mandatory}</Text>
-          <TouchableOpacity onPress={() => handleRemove(item.code)} style={styles.removeButton}>
+        <View key={item.codigo} style={[styles.row, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.cell, { color: colors.text }]}>{item.codigo}</Text>
+          <Text style={[styles.cell, { color: colors.text }]}>{item.nome}</Text>
+          <Text style={[styles.cell, { color: colors.text }]}>{item.periodo}</Text>
+          <Text style={[styles.cell, { color: colors.text }]}>{item.obrigatoria}</Text>
+          <TouchableOpacity onPress={() => handleRemove(item.codigo)} style={styles.removeButton}>
             <Ionicons name="trash" size={20} color={colors.danger} />
           </TouchableOpacity>
         </View>
       ))}
-  
+
       <TouchableOpacity
-        style={[styles.saveButton, { backgroundColor: colors.primary, marginBottom: insets.bottom + 8 }]}
         onPress={handleSave}
+        style={[styles.saveButton, { backgroundColor: colors.primary, marginBottom: insets.bottom + 8 }]}
       >
         <Text style={[styles.saveButtonText, { color: colors.buttonText }]}>Salvar Grade</Text>
       </TouchableOpacity>
-  
+
       {drawerVisible && (
         <View style={StyleSheet.absoluteFillObject}>
           <Pressable style={styles.overlay} onPress={closeDrawer} />
-          <Animated.View
-            style={[
-              styles.drawer,
-              { backgroundColor: colors.background },
-              { transform: [{ translateX: drawerAnim }] },
-            ]}
-          >
+          <Animated.View style={[styles.drawer, { backgroundColor: colors.background, transform: [{ translateX: drawerAnim }] }]}>
             <CustomDrawer />
           </Animated.View>
         </View>
       )}
     </ScrollView>
   );
-  
 }
 
 const styles = StyleSheet.create({
