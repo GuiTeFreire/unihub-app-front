@@ -63,7 +63,7 @@ export default function HomeScreen() {
         <ThemeToggle />
       </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>Bem-vind@ ao UniHub!</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Bem-vind@ ao BsiHub!</Text>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity

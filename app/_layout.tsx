@@ -5,7 +5,7 @@ import { LocaleConfig } from "react-native-calendars";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 declare global {
-  var __DRAGGING_ITEM__: any;
+  let __DRAGGING_ITEM__: any;
 }
 
 export default function Layout() {
