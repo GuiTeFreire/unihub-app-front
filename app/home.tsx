@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,11 +14,11 @@ import { useTheme } from "../contexts/ThemeContext";
 import ThemeToggle from "../components/ThemeToggle";
 import CustomDrawer from "../components/Drawer";
 import { Calendar } from "react-native-calendars";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from "../services/api";
+import axios from "axios";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-
-type Task = { title: string };
-type TaskMap = Record<string, Task[]>;
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -27,10 +27,8 @@ export default function HomeScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [tasks, setTasks] = useState<TaskMap>({
-    "2025-05-10": [{ title: "Entregar trabalho de FSI" }],
-    "2025-05-15": [{ title: "Prova de Cálculo" }, { title: "Reunião de grupo" }],
-  });  
+  const [atividades, setAtividades] = useState<any[]>([]);
+  const [tasks] = useState<Record<string, { title: string }[]>>({});
 
   const openDrawer = () => {
     setDrawerVisible(true);
@@ -53,6 +51,26 @@ export default function HomeScreen() {
   const handleDayPress = (day: { dateString: string }) => {
     setSelectedDate(day.dateString);
   };
+
+  useEffect(() => {
+    const fetchAtividades = async () => {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("usuario_id");
+      if (!token || !userId) return;
+
+      try {
+        const res = await axios.get(`${API_URL}/atividades/usuario/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setAtividades(res.data);
+      } catch (error) {
+        console.error("Erro ao buscar atividades:", error);
+      }
+    };
+
+    fetchAtividades();
+  }, []);
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -132,7 +150,17 @@ export default function HomeScreen() {
                   };
                   return acc;
                 }, {}),
+                ...atividades.reduce<Record<string, any>>((acc, a) => {
+                  const prazo = a.prazo;
+                  acc[prazo] = {
+                    ...(acc[prazo] ?? {}),
+                    marked: true,
+                    dotColor: colors.primary,
+                  };
+                  return acc;
+                }, {}),
               }}
+
               theme={{
                 calendarBackground: colors.card,
                 dayTextColor: colors.text,
@@ -141,18 +169,28 @@ export default function HomeScreen() {
               }}
             />
 
-            {selectedDate && tasks[selectedDate] && (
+            {(atividades.some(a => a.prazo === selectedDate) || tasks[selectedDate]) && (
               <View style={{ marginTop: 12 }}>
                 <Text style={{ color: colors.text, fontWeight: "bold", marginBottom: 4 }}>
                   Atividades em {selectedDate}:
                 </Text>
-                {tasks[selectedDate].map((task, index) => (
-                  <Text key={index} style={{ color: colors.primary }}>
+
+                {atividades
+                  .filter((a) => a.prazo === selectedDate)
+                  .map((a) => (
+                    <Text key={`a-${a.id ?? a.titulo}`} style={{ color: colors.primary }}>
+                      • {a.titulo}
+                    </Text>
+                ))}
+
+                {tasks[selectedDate]?.map((task) => (
+                  <Text key={`t-${task.title}`} style={{ color: colors.primary }}>
                     • {task.title}
                   </Text>
                 ))}
               </View>
             )}
+
           </View>
         </View>
       )}

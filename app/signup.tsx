@@ -17,7 +17,7 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     try {
-      const response = await axios.post(`${API_URL}/usuarios`, {
+      await axios.post(`${API_URL}/usuarios`, {
         nome, email, senha, matricula
       });
 
@@ -32,7 +32,7 @@ export default function SignupScreen() {
       Toast.show({
         type: "error",
         text1: "Erro ao cadastrar",
-        text2: error?.response?.data?.detail || "Tente novamente",
+        text2: error?.response?.data?.detail ?? "Tente novamente",
       });
     };
   };

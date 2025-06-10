@@ -48,7 +48,7 @@ export default function LoginScreen() {
       Toast.show({
         type: "error",
         text1: "Erro ao fazer login",
-        text2: error?.response?.data?.detail || "Verifique suas credenciais"
+        text2: error?.response?.data?.detail ?? "Verifique suas credenciais"
       });
     }
   };

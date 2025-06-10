@@ -3,7 +3,7 @@ import { Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { PanGestureHandler } from "react-native-gesture-handler";
 
-export default function ActivityCard({ activity, onPress, onDragStart, onDragEnd, isDragging }: any) {
+export default function ActivityCard({ activity, onPress, onDragStart, onDragEnd, isDragging, isSelected }: any) {
   const { colors } = useTheme();
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
@@ -20,7 +20,7 @@ export default function ActivityCard({ activity, onPress, onDragStart, onDragEnd
     
     if (state === 2) {
       longPressTimer.current = setTimeout(() => {
-        onDragStart && onDragStart(activity);
+        onDragStart?.(activity);
         Animated.spring(scale, {
           toValue: 1.1,
           useNativeDriver: true,
@@ -31,9 +31,8 @@ export default function ActivityCard({ activity, onPress, onDragStart, onDragEnd
         clearTimeout(longPressTimer.current);
       }
       
-      onDragEnd && onDragEnd(activity, translationX, translationY);
+      onDragEnd?.(activity, translationX, translationY);
       
-
       Animated.parallel([
         Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
         Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
@@ -67,18 +66,18 @@ export default function ActivityCard({ activity, onPress, onDragStart, onDragEnd
               { scale }
             ],
           },
-          isDragging && styles.dragging
+          isDragging
         ]}
       >
         <Pressable
           onPress={() => !isDragging && onPress(activity)}
-          style={({ pressed }) => [
+          style={() => [
             styles.card,
             { 
               backgroundColor: colors.card, 
-              opacity: pressed ? 0.85 : 1,
-              borderColor: isDragging ? colors.primary : 'transparent',
-              borderWidth: isDragging ? 2 : 0,
+              opacity: 1,
+              borderColor: colors.primary,
+              borderWidth: 1
             },
           ]}
         >
@@ -101,9 +100,5 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: "bold",
     marginBottom: 4,
-  },
-  dragging: {
-    zIndex: 1000,
-    elevation: 8,
   },
 });

@@ -1,23 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import ActivityCard from "./ActivityCard";
 
 export default function ActivityColumn({ 
   title, 
-  status, 
   activities, 
   onSelect, 
   onDrop,
   draggedActivity,
   onDragStart,
-  onDragEnd 
+  onDragEnd,
+  selectedActivity
 }: any) {
   const { colors } = useTheme();
-  const [isDropZone, setIsDropZone] = useState(false);
 
   const handleDragStart = (activity: any) => {
-    onDragStart && onDragStart(activity);
+    onDragStart?.(activity);
   };
 
   const handleDragEnd = (activity: any, translationX: number, translationY: number) => {
@@ -36,20 +35,11 @@ export default function ActivityColumn({
       }
       
       if (newStatus !== activity.status) {
-        onDrop && onDrop({ ...activity, status: newStatus });
+        onDrop?.({ ...activity, status: newStatus });
       }
     }
     
-    onDragEnd && onDragEnd();
-    setIsDropZone(false);
-  };
-
-  const handleLayout = (event: any) => {
-    if (draggedActivity && draggedActivity.status !== status) {
-      setIsDropZone(!!draggedActivity);
-    } else {
-      setIsDropZone(false);
-    }
+    onDragEnd?.();
   };
 
   return (
@@ -57,12 +47,11 @@ export default function ActivityColumn({
       style={[
         styles.column, 
         { 
-          backgroundColor: isDropZone ? colors.primary + '20' : colors.card,
-          borderColor: isDropZone ? colors.primary : colors.border,
-          borderWidth: isDropZone ? 2 : 1,
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderWidth: 1,
         }
       ]}
-      onLayout={handleLayout}
     >
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       <Text style={[styles.count, { color: colors.mutedForeground }]}>
@@ -77,16 +66,9 @@ export default function ActivityColumn({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           isDragging={draggedActivity?.id === activity.id}
+          isSelected={selectedActivity?.id === activity.id}
         />
       ))}
-      
-      {isDropZone && activities.length === 0 && (
-        <View style={[styles.dropZone, { borderColor: colors.primary }]}>
-          <Text style={[styles.dropText, { color: colors.primary }]}>
-            Solte aqui
-          </Text>
-        </View>
-      )}
     </View>
   );
 }

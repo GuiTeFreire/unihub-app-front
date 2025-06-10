@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../contexts/ThemeContext';
-import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 export default function CustomDrawer() {
   const { colors } = useTheme();
@@ -13,9 +14,25 @@ export default function CustomDrawer() {
   const email = 'guitenan@edu.unirio.br';
   const matricula = '20212210018';
 
-  const handleLogout = () => {
-    // Colocar lógica de logout aqui depois
-    router.replace('/');
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("usuario_id");
+
+      Toast.show({
+        type: "success",
+        text1: "Logout realizado com sucesso!",
+      });
+
+      router.replace("/"); // volta para login
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      Toast.show({
+        type: "error",
+        text1: "Erro ao sair",
+        text2: "Tente novamente",
+      });
+    }
   };
 
   return (

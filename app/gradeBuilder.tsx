@@ -38,7 +38,9 @@ export default function GradeBuilder() {
   const [filter, setFilter] = useState("");
   const [classList, setClassList] = useState<ClassData[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<ClassData[]>([]);
+  const [originalClasses, setOriginalClasses] = useState<ClassData[]>([]);
   const insets = useSafeAreaInsets();
+
 
   useEffect(() => {
     const fetchDisciplinas = async () => {
@@ -64,8 +66,17 @@ export default function GradeBuilder() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const disciplinasSalvas = res.data.map((item: any) => item.disciplina);
+        const disciplinasSalvas = res.data.map((item: any) => ({
+          id: item.id, // ID da grade
+          nome: item.disciplina.nome,
+          codigo: item.disciplina.codigo,
+          obrigatoria: item.disciplina.obrigatoria,
+          periodo: item.disciplina.periodo,
+        }));
+
         setSelectedClasses(disciplinasSalvas);
+        setOriginalClasses(disciplinasSalvas);
+
       } catch (error) {
         console.error("Erro ao buscar grade salva:", error);
       }
@@ -90,7 +101,8 @@ export default function GradeBuilder() {
       useNativeDriver: true,
     }).start(() => setDrawerVisible(false));
   };
-const filteredClasses = classList.filter((c) =>
+
+  const filteredClasses = classList.filter((c) =>
     [c.codigo, c.nome, c.periodo, c.obrigatoria].some((field) =>
       field.toLowerCase().includes(filter.toLowerCase())
     )
@@ -102,9 +114,35 @@ const filteredClasses = classList.filter((c) =>
     }
   };
 
-  const handleRemove = (codigo: string) => {
-    setSelectedClasses((prev) => prev.filter((c) => c.codigo !== codigo));
+  const handleRemove = async (gradeId: number) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) throw new Error("Token não encontrado");
+
+      await axios.delete(`${API_URL}/grades/${gradeId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSelectedClasses((prev) => prev.filter((c) => c.id !== gradeId));
+
+      Toast.show({
+        type: "success",
+        text1: "Disciplina removida da grade.",
+      });
+    } catch (error) {
+      console.error("Erro ao remover disciplina:", error);
+      Toast.show({
+        type: "error",
+        text1: "Erro ao remover disciplina",
+      });
+    }
   };
+
+  const novasDisciplinas = selectedClasses.filter(
+    (nova) => !originalClasses.some((orig) => orig.codigo === nova.codigo)
+  );
 
   const handleSave = async () => {
     try {
@@ -113,7 +151,7 @@ const filteredClasses = classList.filter((c) =>
 
       if (!token || !userId) throw new Error("Usuário não autenticado");
 
-      for (const disciplina of selectedClasses) {
+      for (const disciplina of novasDisciplinas) {
         await axios.post(
           `${API_URL}/grades/usuario/${userId}`,
           {
@@ -186,17 +224,17 @@ const filteredClasses = classList.filter((c) =>
       />
 
       <Text style={[styles.subtitle, { color: colors.text }]}>Minha Grade</Text>
-      {selectedClasses.map((item) => (
-        <View key={item.codigo} style={[styles.row, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.codigo}</Text>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.nome}</Text>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.periodo}</Text>
-          <Text style={[styles.cell, { color: colors.text }]}>{item.obrigatoria}</Text>
-          <TouchableOpacity onPress={() => handleRemove(item.codigo)} style={styles.removeButton}>
-            <Ionicons name="trash" size={20} color={colors.danger} />
-          </TouchableOpacity>
-        </View>
-      ))}
+        {selectedClasses.map((item) => (
+          <View key={item.codigo} style={[styles.row, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.cell, { color: colors.text }]}>{item.codigo}</Text>
+            <Text style={[styles.cell, { color: colors.text }]}>{item.nome}</Text>
+            <Text style={[styles.cell, { color: colors.text }]}>{item.periodo}</Text>
+            <Text style={[styles.cell, { color: colors.text }]}>{item.obrigatoria}</Text>
+            <TouchableOpacity onPress={() => handleRemove(item.id)} style={styles.removeButton}>
+              <Ionicons name="trash" size={20} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
+        ))}
 
       <TouchableOpacity
         onPress={handleSave}
